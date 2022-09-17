@@ -9,6 +9,9 @@ import android.util.Log;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+
+import javax.microedition.khronos.opengles.GL10;
 
 public class ShowYUVImage {
 
@@ -20,7 +23,7 @@ public class ShowYUVImage {
     private byte[] y;
     private byte[] u;
     private byte[] v;
-    private int[] argb;
+    private ByteBuffer rgb;
 
     private InputStream yuvFile;
 
@@ -28,6 +31,12 @@ public class ShowYUVImage {
 
     public boolean isAvailable() {
         return available;
+    }
+
+    private int[] textureID;
+
+    public int getTextureID() {
+        return textureID[0];
     }
 
     public ShowYUVImage(Context context) {
@@ -41,7 +50,7 @@ public class ShowYUVImage {
         y = new byte[ySize];
         u = new byte[uvSize];
         v = new byte[uvSize];
-        argb = new int[ySize];
+        rgb = ByteBuffer.allocateDirect(ySize * 3);
     }
 
     protected void readYUV() {
@@ -94,21 +103,39 @@ public class ShowYUVImage {
                 int r = (int) ((1.164 * y16) + (0.0 * u128) + (1.596 * v128));
                 int g = (int) ((1.164 * y16) + (-0.392 * u128) + (-0.813 * v128));
                 int b = (int) ((1.164 * y16) + (2.017 * u128) + (0.0 * v128));
-                r = clip(r);
-                g = clip(g);
-                b = clip(b);
-                argb[y_pos + w] = (0xFF << 24) | (r << 16) | (g << 8) | b;
+                rgb.put((byte)clip(r));
+                rgb.put((byte)clip(g));
+                rgb.put((byte)clip(b));
             }
         }
+        rgb.position(0);
     }
 
-    public Bitmap getNextBitmap() {
-        if (available) {
+    public void init(GL10 gl10) {
+        textureID = new int[1];
+        gl10.glGenTextures(1, textureID, 0);
+        gl10.glBindTexture(GL10.GL_TEXTURE_2D, textureID[0]);
+        gl10.glPixelStorei(GL10.GL_UNPACK_ALIGNMENT, 1);
+        gl10.glTexParameterx(GL10.GL_TEXTURE_2D,GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR );
+        gl10.glTexParameterx(GL10.GL_TEXTURE_2D,GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_LINEAR );
+        gl10.glTexEnvf( GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_REPLACE );
+    }
+
+    public void setNextTexture(GL10 gl10) {
+        if (isAvailable()) {
             transYUV2RGB();
-            Bitmap bitmap = Bitmap.createBitmap(argb, width, height, Bitmap.Config.ARGB_8888);
+            gl10.glBindTexture(GL10.GL_TEXTURE_2D, textureID[0]);
+            gl10.glTexImage2D(
+                    GL10.GL_TEXTURE_2D,
+                    0,
+                    GL10.GL_RGB,
+                    width,
+                    height,
+                    0,
+                    GL10.GL_RGB,
+                    GL10.GL_UNSIGNED_BYTE,
+                    rgb);
             readYUV();
-            return bitmap;
         }
-        return null;
     }
 }

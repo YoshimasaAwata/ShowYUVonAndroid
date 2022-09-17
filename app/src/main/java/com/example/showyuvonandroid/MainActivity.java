@@ -33,7 +33,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         Toast.makeText(getApplicationContext(), uri.toString(), Toast.LENGTH_SHORT).show();
                         ShowYUVView view = findViewById(R.id.view);
                         view.setYUVFileURL(getContentResolver(), uri);
-                        findViewById(R.id.play_button).setEnabled(true);
+                        if (view.isAvailable()) {
+                            findViewById(R.id.play_button).setEnabled(true);
+                            view.requestRender();
+                        }
                     }
                 }
             });
@@ -73,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 public void run() {
                     ShowYUVView view = findViewById(R.id.view);
                     if (view.isAvailable()) {
-                        view.drawNextBitmap();
+                        view.requestRender();
                     }
                     else {
                         timer.cancel();
