@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 public void run() {
                     ShowYUVView view = findViewById(R.id.view);
                     if (view.isAvailable()) {
-                        findViewById(R.id.view).invalidate();
+                        view.drawNextBitmap();
                     }
                     else {
                         timer.cancel();
