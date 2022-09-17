@@ -33,7 +33,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         Toast.makeText(getApplicationContext(), uri.toString(), Toast.LENGTH_SHORT).show();
                         ShowYUVView view = findViewById(R.id.view);
                         view.setYUVFileURL(getContentResolver(), uri);
-                        view.invalidate();
                         findViewById(R.id.play_button).setEnabled(true);
                     }
                 }
