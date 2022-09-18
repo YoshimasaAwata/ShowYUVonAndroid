@@ -2,11 +2,10 @@ package com.example.showyuvonandroid;
 
 import android.content.ContentResolver;
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.net.Uri;
+import android.opengl.GLES20;
 import android.util.Log;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -113,27 +112,30 @@ public class ShowYUVImage {
 
     public void init(GL10 gl10) {
         textureID = new int[1];
-        gl10.glGenTextures(1, textureID, 0);
-        gl10.glBindTexture(GL10.GL_TEXTURE_2D, textureID[0]);
-        gl10.glPixelStorei(GL10.GL_UNPACK_ALIGNMENT, 1);
-        gl10.glTexParameterx(GL10.GL_TEXTURE_2D,GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR );
-        gl10.glTexParameterx(GL10.GL_TEXTURE_2D,GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_LINEAR );
-        gl10.glTexEnvf( GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_REPLACE );
+        GLES20.glGenTextures(1, textureID, 0);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureID[0]);
+        GLES20.glPixelStorei(GLES20.GL_UNPACK_ALIGNMENT, 1);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR );
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR );
+//        gl10.glTexEnvf( GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_REPLACE );
     }
 
-    public void setNextTexture(GL10 gl10) {
+    public void setNextTexture(GL10 gl10, ShowYUVShader shader) {
         if (isAvailable()) {
             transYUV2RGB();
-            gl10.glBindTexture(GL10.GL_TEXTURE_2D, textureID[0]);
-            gl10.glTexImage2D(
-                    GL10.GL_TEXTURE_2D,
+            int samplerLocation = shader.getTextureSamplerUniform();
+            GLES20.glUniform1i(samplerLocation, 0);
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureID[0]);
+            GLES20.glTexImage2D(
+                    GLES20.GL_TEXTURE_2D,
                     0,
-                    GL10.GL_RGB,
+                    GLES20.GL_RGB,
                     width,
                     height,
                     0,
-                    GL10.GL_RGB,
-                    GL10.GL_UNSIGNED_BYTE,
+                    GLES20.GL_RGB,
+                    GLES20.GL_UNSIGNED_BYTE,
                     rgb);
             readYUV();
         }
