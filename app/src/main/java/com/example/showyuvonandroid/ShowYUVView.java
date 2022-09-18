@@ -2,22 +2,12 @@ package com.example.showyuvonandroid;
 
 import android.content.ContentResolver;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Rect;
 import android.net.Uri;
 import android.opengl.GLES20;
 import android.opengl.GLException;
 import android.opengl.GLSurfaceView;
-import android.opengl.GLU;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
-import android.view.View;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -30,6 +20,7 @@ public class ShowYUVView extends GLSurfaceView {
 
     private ShowYUVImage showYUVImage;
     private Renderer renderer;
+    private ShowYUVShader shader;
 
     public ShowYUVView(Context context) {
         super(context);
@@ -42,7 +33,7 @@ public class ShowYUVView extends GLSurfaceView {
     }
 
     protected void init(Context context) {
-        setEGLContextClientVersion(1);
+        setEGLContextClientVersion(2);
         renderer = new ShowYUVRenderer();
         setRenderer(renderer);
         setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
@@ -54,7 +45,11 @@ public class ShowYUVView extends GLSurfaceView {
     }
 
     public boolean isAvailable() {
-        return showYUVImage.isAvailable();
+        boolean rc = false;
+        if (shader != null) {
+            rc = showYUVImage.isAvailable() && shader.isAvailable();
+        }
+        return rc;
     }
 
     protected class ShowYUVRenderer implements Renderer {
@@ -77,7 +72,6 @@ public class ShowYUVView extends GLSurfaceView {
         private FloatBuffer vertexBuffer;
         private int[] vertexBufferIDs = new int[1];
         private int[] textureBufferIDs = new int[1];
-        private ShowYUVShader shader;
 
         public FloatBuffer createFloatDirect(float[] array) {
             ByteBuffer workBuffer = ByteBuffer.allocateDirect(array.length * 4);    // 頂点数 x 4バイト
