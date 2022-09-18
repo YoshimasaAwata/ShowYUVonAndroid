@@ -3,6 +3,8 @@ package com.example.showyuvonandroid;
 import android.opengl.GLES20;
 import android.opengl.GLException;
 
+import javax.microedition.khronos.opengles.GL10;
+
 public class ShowYUVShader {
 
     static final String VERTEX_SOURCE =
@@ -17,11 +19,25 @@ public class ShowYUVShader {
             "}";
 
     static final String FRAGMENT_SOURCE =
+            "const mediump mat4 TORGB = mat4(\n" +
+            "    1.164,  1.164, 1.164, 0.0,\n" +
+            "    0.0,   -0.392, 2.017, 0.0,\n" +
+            "    1.596, -0.813, 0.0,   0.0,\n" +
+            "    0.0,    0.0,   0.0,   1.0);\n" +
+            "const mediump vec4 DIFF = vec4(16.0 / 255.0, 128.0 / 255.0, 128.0 / 255.0, 0.0);\n" +
             "varying mediump vec2 uv;\n" +
-            "uniform sampler2D textureSampler;\n" +
+            "uniform sampler2D textureSamplerY;\n" +
+            "uniform sampler2D textureSamplerU;\n" +
+            "uniform sampler2D textureSamplerV;\n" +
             "void main(void)\n" +
             "{\n" +
-            "    gl_FragColor = texture2D(textureSampler, uv);\n" +
+            "    mediump vec4 fy = texture2D(textureSamplerY, uv);\n" +
+            "    mediump vec4 fu = texture2D(textureSamplerU, uv);\n" +
+            "    mediump vec4 fv = texture2D(textureSamplerV, uv);\n" +
+            "    mediump vec4 yuv = vec4(fy.r, fu.r, fv.r, 1.0);\n" +
+            "    yuv -= DIFF;\n" +
+            "    mediump vec4 rgb = TORGB * yuv;\n" +
+            "    gl_FragColor = clamp(rgb, 0.0, 1.0);\n" +
             "}";
 
     static final String ERROR_VERTEX = "バーテックスシェーダー作成失敗";
@@ -116,7 +132,13 @@ public class ShowYUVShader {
         return GLES20.glGetAttribLocation(programID, "vertexUV");
     }
 
-    public int getTextureSamplerUniform() {
-        return GLES20.glGetUniformLocation(programID, "textureSampler");
+    public int getTextureSamplerUniformY() {
+        return GLES20.glGetUniformLocation(programID, "textureSamplerY");
+    }
+    public int getTextureSamplerUniformU() {
+        return GLES20.glGetUniformLocation(programID, "textureSamplerU");
+    }
+    public int getTextureSamplerUniformV() {
+        return GLES20.glGetUniformLocation(programID, "textureSamplerV");
     }
 }
