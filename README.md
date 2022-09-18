@@ -16,3 +16,4 @@ tagは以下の章に対応しています。
 
 - とりあえずアプリケーションを作成:タイマー間隔の指定
 - SurfaceViewを使用したYUVデータの動画表示:TimerTaskでShowYUVViewの描画メソッドのコール
+- OpenGL ES 2.0を使用したYUVデータの動画表示:onDrawFrameメソッドの修正
