@@ -22,7 +22,9 @@ public class ShowYUVImage {
     private byte[] y;
     private byte[] u;
     private byte[] v;
-    private ByteBuffer rgb;
+    private ByteBuffer yBuffer;
+    private ByteBuffer uBuffer;
+    private ByteBuffer vBuffer;
 
     private InputStream yuvFile;
 
@@ -32,10 +34,20 @@ public class ShowYUVImage {
         return available;
     }
 
-    private int[] textureID;
+    private int[] textureIDY;
+    private int[] textureIDU;
+    private int[] textureIDV;
 
-    public int getTextureID() {
-        return textureID[0];
+    public int getTextureIDY() {
+        return textureIDY[0];
+    }
+
+    public int getTextureIDU() {
+        return textureIDU[0];
+    }
+
+    public int getTextureIDV() {
+        return textureIDV[0];
     }
 
     public ShowYUVImage(Context context) {
@@ -49,7 +61,9 @@ public class ShowYUVImage {
         y = new byte[ySize];
         u = new byte[uvSize];
         v = new byte[uvSize];
-        rgb = ByteBuffer.allocateDirect(ySize * 3);
+        yBuffer = ByteBuffer.allocateDirect(ySize);
+        uBuffer = ByteBuffer.allocateDirect(uvSize);
+        vBuffer = ByteBuffer.allocateDirect(uvSize);
     }
 
     protected void readYUV() {
@@ -60,6 +74,14 @@ public class ShowYUVImage {
                 int size = yuvFile.read(v);
                 if (size < uvSize) {
                     available = false;
+                }
+                else {
+                    yBuffer.put(y);
+                    uBuffer.put(u);
+                    vBuffer.put(v);
+                    yBuffer.position(0);
+                    uBuffer.position(0);
+                    vBuffer.position(0);
                 }
             } catch (IOException e) {
                 Log.e("ReadFile", e.toString());
@@ -81,62 +103,76 @@ public class ShowYUVImage {
         }
     }
 
-    protected int clip(int n) {
-        return (n <= 0) ? 0 : ((n >= 255) ? 255 : n);
-    }
-
-    protected void transYUV2RGB() {
-        for (int h = 0; h < height; h++) {
-            int y_pos = h * width;
-            int uv_pos = (h / 2) * (width / 2);
-
-            for (int w = 0; w < width; w++) {
-                int yi = y[y_pos + w] & 0x0FF;
-                int ui = u[uv_pos + (w / 2)] & 0x0FF;
-                int vi = v[uv_pos + (w / 2)] & 0x0FF;
-
-                double y16 = yi - 16.0;
-                double u128 = ui - 128.0;
-                double v128 = vi - 128.0;
-
-                int r = (int) ((1.164 * y16) + (0.0 * u128) + (1.596 * v128));
-                int g = (int) ((1.164 * y16) + (-0.392 * u128) + (-0.813 * v128));
-                int b = (int) ((1.164 * y16) + (2.017 * u128) + (0.0 * v128));
-                rgb.put((byte)clip(r));
-                rgb.put((byte)clip(g));
-                rgb.put((byte)clip(b));
-            }
-        }
-        rgb.position(0);
-    }
-
     public void init(GL10 gl10) {
-        textureID = new int[1];
-        GLES20.glGenTextures(1, textureID, 0);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureID[0]);
+        textureIDY = new int[1];
+        GLES20.glGenTextures(1, textureIDY, 0);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureIDY[0]);
         GLES20.glPixelStorei(GLES20.GL_UNPACK_ALIGNMENT, 1);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR );
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR );
-//        gl10.glTexEnvf( GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_REPLACE );
+
+        textureIDU = new int[1];
+        GLES20.glGenTextures(1, textureIDU, 0);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureIDU[0]);
+        GLES20.glPixelStorei(GLES20.GL_UNPACK_ALIGNMENT, 1);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR );
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR );
+
+        textureIDV = new int[1];
+        GLES20.glGenTextures(1, textureIDV, 0);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureIDV[0]);
+        GLES20.glPixelStorei(GLES20.GL_UNPACK_ALIGNMENT, 1);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR );
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR );
     }
 
     public void setNextTexture(GL10 gl10, ShowYUVShader shader) {
         if (isAvailable()) {
-            transYUV2RGB();
-            int samplerLocation = shader.getTextureSamplerUniform();
-            GLES20.glUniform1i(samplerLocation, 0);
+            int samplerLocationY = shader.getTextureSamplerUniformY();
+            GLES20.glUniform1i(samplerLocationY, 0);
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureID[0]);
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureIDY[0]);
             GLES20.glTexImage2D(
                     GLES20.GL_TEXTURE_2D,
                     0,
-                    GLES20.GL_RGB,
+                    GLES20.GL_LUMINANCE,
                     width,
                     height,
                     0,
-                    GLES20.GL_RGB,
+                    GLES20.GL_LUMINANCE,
                     GLES20.GL_UNSIGNED_BYTE,
-                    rgb);
+                    yBuffer);
+
+            int samplerLocationU = shader.getTextureSamplerUniformU();
+            GLES20.glUniform1i(samplerLocationU, 1);
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureIDU[0]);
+            GLES20.glTexImage2D(
+                    GLES20.GL_TEXTURE_2D,
+                    0,
+                    GLES20.GL_LUMINANCE,
+                    (width / 2),
+                    (height / 2),
+                    0,
+                    GLES20.GL_LUMINANCE,
+                    GLES20.GL_UNSIGNED_BYTE,
+                    uBuffer);
+
+            int samplerLocationV = shader.getTextureSamplerUniformV();
+            GLES20.glUniform1i(samplerLocationV, 2);
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE2);
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureIDV[0]);
+            GLES20.glTexImage2D(
+                    GLES20.GL_TEXTURE_2D,
+                    0,
+                    GLES20.GL_LUMINANCE,
+                    (width / 2),
+                    (height / 2),
+                    0,
+                    GLES20.GL_LUMINANCE,
+                    GLES20.GL_UNSIGNED_BYTE,
+                    vBuffer);
+
             readYUV();
         }
     }
